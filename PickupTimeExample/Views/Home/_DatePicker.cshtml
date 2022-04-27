@@ -1,0 +1,151 @@
+﻿@model PickupTimeExample.Models.PickupTimeModel
+@*Create a hidden field to keep track of the selection --  may not be necessary*@
+@Html.Hidden("selectedTime", 0)
+<div class="form-horizontal">
+    <hr />
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    <div class="form-group">
+        @Html.LabelFor(model => model.SelectedDate, htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.SelectedDate, new { htmlAttributes = new { onchange = "changeDateTime(this)", @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.SelectedDate, "", new { @class = "text-danger" })
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        @*Example for the buttons section*@
+        <div class="col" style="border: 1px solid black">
+            <table style="border: 1px solid black">
+                <thead>
+                    Pickup Times
+                </thead>
+                <tbody>
+                    @foreach (var i in Model.PickupTimes)
+                    {
+                        <tr>
+                            @if (i.IsAvailable)
+                            {
+                                <td style="background-color:green; border: 1px solid black">
+                                    <button class="timeSelectionButton" onclick="SelectTime(this, '@i.PickupDateTime.TimeOfDay' )" style="margin: 5px">
+                                        @i.PickupDateTime.TimeOfDay
+                                    </button>
+                                </td>
+                            }
+                            else
+                            {
+                                <td style="background-color:grey; border: 1px solid black">
+                                    <button disabled style="margin: 5px">
+                                        @i.PickupDateTime.TimeOfDay
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @*Example for the dropdown section*@
+        <div class="col" style="border: 1px solid black">
+            <div class="row">
+                <div class="col">
+                    @Html.DropDownList("SelectTimes", Model.SelectPickupTimes, new { @onchange="DropdownSelect(this.value)" })
+                </div>
+                <div class="col">
+                    <table style="border: 1px solid black">
+                        <thead>
+                            Pickup Times
+                        </thead>
+                        <tbody>
+                            @foreach (var i in Model.PickupTimes)
+                            {
+                                var rowid = "timeslot-" + i.PickupDateTime.TimeOfDay;
+                                <tr id="@rowid">
+                                    @if (i.IsAvailable)
+                                    {
+                                        <td class="timeslot-row-enabled" style="background-color:white; border: 1px solid black">
+                                            @i.PickupDateTime.TimeOfDay
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td style="background-color:grey; border: 1px solid black">
+                                            @i.PickupDateTime.TimeOfDay
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    function SelectTime(btn, selection) {
+        //change the color of all buttons -- this will clear the previous selection visually
+        var allButtons = document.getElementsByClassName("timeSelectionButton");
+        for (var i=0; i < allButtons.length; i++) {
+            allButtons[i].style.backgroundColor = "#FFFFFF";
+        }
+
+        //set the color of the new selection
+        btn.style.backgroundColor = "#7FFF00";
+        console.log(selection);
+
+        //set the actual value of the selection to the hidden value
+        document.getElementById("selectedTime").value = selection;
+    }
+
+
+
+    function DropdownSelect(selection){
+        //split date input to usabled form [4/27/2022] [02:00:00] [AM/PM]
+        var result = selection.split(" ");
+
+        //split time into a usable format to adjust [2] [00] [00]
+        var time = result[1].split(":");
+
+        //If the time is greater than 12, we need to convert it back to a 24:00 time by adding 12
+        //If it less than 10, we need to append a 0 to the front for id access
+        if (result[2] == "PM"){
+            time[0] = + time[0] + 12;
+        }
+        else{
+            if (time[0] < 10){
+                time[0] = "0" + time[0];
+            }
+        }
+
+        //change the color back for all other selected rows -- this will clear the previous selection visually
+        var allRows = document.getElementsByClassName("timeslot-row-enabled");
+        for (var i=0; i < allRows.length; i++) {
+            allRows[i].style.backgroundColor = "#FFFFFF";
+        }
+
+        //change the color of the actual selected row
+        document.getElementById("timeslot-" + time[0] + ":00:00").querySelector("td").style.backgroundColor = "#7FFF00";
+
+        //actually set the value of the new selection
+        document.getElementById("selectedTime").value = selection;
+    }
+
+    function changeDateTime(){
+        console.log("click");
+        //var url = '@Url.Action("GenerateDatePicker", "Home")';
+
+        $.ajax({
+                url: '@Url.Action("GenerateDatePicker", "Home")',
+                type: 'GET',
+                data: {SelectedTime : $("#SelectedDate").val()},
+                success: function (partialView) {
+                    $('#datePickerDiv').html(partialView);
+                    //$('#detailsPlace').show();
+                }
+            });
+    }
+</script>
